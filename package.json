@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "npm run lint:oxlint && npm run lint:styles",
+    "lint": "npm run lint:oxlint && npm run fmt:check && npm run lint:styles",
     "lint:oxlint": "oxlint",
     "lint:styles": "stylelint 'src/**/*.css'",
-    "fmt": "oxfmt"
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "dependencies": {
     "@ffmpeg/core-mt": "^0.12.10",

@@ -1,0 +1,100 @@
+.job {
+  display: block;
+  padding: .75rem;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: .5rem;
+}
+
+.row,
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.visual {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .35rem;
+  flex: none;
+}
+
+.thumbnailSlot {
+  width: 120px;
+  aspect-ratio: 16 / 9;
+  flex: none;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.state {
+  font-size: .875rem;
+}
+
+.info {
+  display: grid;
+  justify-items: start;
+  gap: .25rem;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.topActions {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  flex: none;
+}
+
+.removeButton {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: .25rem;
+  background: transparent;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.removeButton:hover,
+.removeButton:focus-visible {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.progress {
+  width: 100%;
+}
+
+@media (max-width: 34rem) {
+  .row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .75rem;
+  }
+
+  .visual {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .thumbnailSlot {
+    width: 100%;
+    max-height: 14rem;
+  }
+
+  .topActions {
+    grid-column: 2;
+  }
+}

@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint:styles": "stylelint 'src/**/*.css'"
   },
   "devDependencies": {
+    "stylelint": "^17.15.0",
+    "stylelint-config-standard": "^40.0.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   },

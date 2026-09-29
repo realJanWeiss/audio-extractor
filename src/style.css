@@ -124,7 +124,7 @@ section {
   font-size: .75rem;
 }
 
-@media (max-width: 34rem) {
+@media (width <= 34rem) {
   .advanced-fields,
   .custom-fields {
     grid-template-columns: 1fr;

@@ -1,7 +1,7 @@
 .job {
   display: block;
   padding: .75rem;
-  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border: 1px solid color-mix(in srgb, currentcolor 20%, transparent);
   border-radius: .5rem;
 }
 
@@ -25,7 +25,7 @@
   aspect-ratio: 16 / 9;
   flex: none;
   overflow: hidden;
-  background: color-mix(in srgb, currentColor 10%, transparent);
+  background: color-mix(in srgb, currentcolor 10%, transparent);
 }
 
 .thumbnail {
@@ -70,14 +70,14 @@
 
 .removeButton:hover,
 .removeButton:focus-visible {
-  background: color-mix(in srgb, currentColor 10%, transparent);
+  background: color-mix(in srgb, currentcolor 10%, transparent);
 }
 
 .progress {
   width: 100%;
 }
 
-@media (max-width: 34rem) {
+@media (width <= 34rem) {
   .row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;

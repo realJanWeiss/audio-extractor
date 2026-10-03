@@ -13,6 +13,7 @@ export const ui = {
   main: required('main', HTMLElement),
   files: required('#files', HTMLInputElement),
   dropZone: required('#drop-zone', HTMLElement),
+  extractionDetails: required('#extraction-details', HTMLElement),
   controls: required('#controls', HTMLElement),
   runButton: required('#run', HTMLButtonElement),
   runLabel: required('#run-label', HTMLElement),
@@ -29,6 +30,7 @@ export function announce(message: string, error = false): void {
   ui.notice.textContent = message;
   ui.notice.hidden = message.length === 0;
   ui.notice.classList.toggle('error', error);
+  ui.extractionDetails.hidden = ui.jobs.hidden && ui.notice.hidden;
 }
 
 function renderJob(job: Job): void {
@@ -55,6 +57,7 @@ export function refreshView(jobs: readonly Job[], state: QueueState, changedJob?
   const active = jobs.find((job) => job.status === 'processing');
 
   ui.controls.hidden = total === 0;
+  ui.extractionDetails.hidden = total === 0 && ui.notice.hidden;
   ui.jobs.hidden = total === 0;
   ui.main.classList.toggle('has-files', total > 0);
 

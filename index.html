@@ -25,26 +25,30 @@
           />
         </div>
 
-        <p id="notice" class="notice" role="alert" hidden></p>
+        <div id="extraction-details" class="extraction-details" hidden>
+          <p id="notice" class="notice" role="alert" hidden></p>
 
-        <div id="activity" class="activity" role="status" aria-live="polite" hidden>
-          <div class="activity-line"><span id="current-status">Idle</span></div>
-          <progress
-            id="batch-progress"
-            max="1"
-            value="0"
-            aria-label="Overall batch progress"
-          ></progress>
-          <div class="activity-line">
-            <span id="batch-status">No files added yet</span>
-            <button id="download-all" class="text-action" type="button" hidden>Download all</button>
+          <div id="activity" class="activity" role="status" aria-live="polite" hidden>
+            <div class="activity-line"><span id="current-status">Idle</span></div>
+            <progress
+              id="batch-progress"
+              max="1"
+              value="0"
+              aria-label="Overall batch progress"
+            ></progress>
+            <div class="activity-line">
+              <span id="batch-status">No files added yet</span>
+              <button id="download-all" class="text-action" type="button" hidden>
+                Download all
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div id="jobs" class="jobs" aria-label="Files" hidden></div>
+          <div id="jobs" class="jobs" aria-label="Files" hidden></div>
 
-        <div class="controls" id="controls" hidden>
-          <button id="run" type="button"><span id="run-label">Extract audio</span></button>
+          <div class="controls" id="controls" hidden>
+            <button id="run" type="button"><span id="run-label">Extract audio</span></button>
+          </div>
         </div>
       </section>
     </main>

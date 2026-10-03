@@ -9,6 +9,10 @@
   color-scheme: light dark;
 }
 
+button {
+  border-radius: 0.375rem;
+}
+
 main {
   padding: 1rem;
   min-height: 100dvh;
@@ -34,6 +38,7 @@ section {
   place-items: center;
   padding: 1rem;
   border: 2px dashed;
+  border-radius: 0.5rem;
   text-align: center;
 }
 
@@ -60,37 +65,60 @@ section {
   min-height: 8rem;
 }
 
+.extraction-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  max-width: 50rem;
+  width: 100%;
+  margin-top: 1rem;
+  margin-inline: auto;
+}
+
 .controls {
   display: flex;
   align-items: center;
-  justify-self: center;
   flex-wrap: wrap;
-  max-width: 50rem;
   width: 100%;
   gap: 0.75rem;
-  margin-block: auto 0;
-  margin-inline: auto;
-  padding-top: 1rem;
 }
 
 .controls button {
   margin-left: auto;
 }
 
-.activity,
-.jobs {
-  margin-top: 1rem;
+#run {
+  min-height: 3rem;
+  padding: 0.75rem 1.5rem;
+  font: inherit;
+  font-weight: 600;
 }
 
 .jobs {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-width: 50rem;
   width: 100%;
-  margin-inline: auto;
 }
 
 progress {
   width: 100%;
+}
+
+@media (width >= 56rem) {
+  .has-files section {
+    display: grid;
+    grid-template-columns: minmax(12rem, 1fr) minmax(0, 2fr);
+    gap: 1rem;
+  }
+
+  .has-files .drop-zone {
+    min-height: 16rem;
+  }
+
+  .has-files .extraction-details {
+    max-width: none;
+    margin: 0;
+  }
 }

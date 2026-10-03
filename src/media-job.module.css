@@ -25,6 +25,7 @@
   aspect-ratio: 16 / 9;
   flex: none;
   overflow: hidden;
+  border-radius: 0.25rem;
   background: color-mix(in srgb, currentcolor 10%, transparent);
 }
 

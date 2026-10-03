@@ -14,23 +14,10 @@ export const ui = {
   files: required('#files', HTMLInputElement),
   dropZone: required('#drop-zone', HTMLElement),
   controls: required('#controls', HTMLElement),
-  format: required('#format', HTMLSelectElement),
-  advanced: required('#advanced', HTMLDetailsElement),
-  bitrate: required('#bitrate', HTMLSelectElement),
-  sampleRate: required('#sample-rate', HTMLSelectElement),
-  channels: required('#channels', HTMLSelectElement),
-  customFields: required('#custom-fields', HTMLElement),
-  customCodec: required('#custom-codec', HTMLInputElement),
-  customMuxer: required('#custom-muxer', HTMLInputElement),
-  customExtension: required('#custom-extension', HTMLInputElement),
-  extraArgs: required('#extra-args', HTMLTextAreaElement),
-  showCapabilities: required('#show-capabilities', HTMLButtonElement),
-  capabilities: required('#capabilities', HTMLElement),
   runButton: required('#run', HTMLButtonElement),
   runLabel: required('#run-label', HTMLElement),
   downloadAll: required('#download-all', HTMLButtonElement),
   activity: required('#activity', HTMLElement),
-  engineProgress: required('#engine-progress', HTMLProgressElement),
   currentStatus: required('#current-status', HTMLElement),
   batchStatus: required('#batch-status', HTMLElement),
   batchProgress: required('#batch-progress', HTMLProgressElement),
@@ -72,23 +59,21 @@ export function refreshView(jobs: readonly Job[], state: QueueState, changedJob?
   ui.main.classList.toggle('has-files', total > 0);
 
   ui.activity.hidden = !state.running && settled === 0;
-  ui.engineProgress.hidden = !state.engineLoading;
-  if (state.engineLoading) ui.engineProgress.removeAttribute('value');
-  ui.batchProgress.hidden = state.engineLoading || (!state.running && settled === 0);
+  ui.batchProgress.hidden = state.processorLoading || (!state.running && settled === 0);
   ui.batchProgress.max = Math.max(total, 1);
   ui.batchProgress.value = settled + (active?.progress ?? 0);
 
-  ui.batchStatus.hidden = state.engineLoading;
+  ui.batchStatus.hidden = state.processorLoading;
   ui.batchStatus.textContent = total ? `${done} of ${total} complete` : '';
   ui.currentStatus.textContent = active
     ? `${active.file.name} · ${Math.round(active.progress * 100)}%`
-    : state.engineLoading
-      ? 'Loading engine…'
+    : state.processorLoading
+      ? 'Preparing extraction…'
       : '';
 
-  ui.runButton.disabled = pending === 0 || state.running || !state.engineAvailable;
-  ui.runLabel.textContent = state.engineLoading
-    ? 'Loading engine…'
+  ui.runButton.disabled = pending === 0 || state.running;
+  ui.runLabel.textContent = state.processorLoading
+    ? 'Preparing extraction…'
     : state.running
       ? 'Extracting…'
       : 'Extract audio';

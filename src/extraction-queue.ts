@@ -1,31 +1,22 @@
-import { EngineCancelledError } from './engine-controller.ts';
-import { settingsError } from './audio-format.ts';
-import type { Job, OutputSettings } from './types.ts';
+import type { Job } from './types.ts';
 
-export type Processor = Pick<
-  typeof import('./processor.ts'),
-  'loadEngine' | 'isLoaded' | 'cancelCurrent' | 'probeAudioCodec' | 'extract' | 'listCapabilities'
->;
+export type Processor = Pick<typeof import('./processor.ts'), 'inspectAudio' | 'extract'>;
 
 export interface QueueState {
   running: boolean;
-  engineLoading: boolean;
-  engineAvailable: boolean;
+  processorLoading: boolean;
 }
 
 interface QueueOptions {
-  engineAvailable: boolean;
   loadProcessor: () => Promise<Processor>;
   onChange: (job?: Job) => void;
   onAdd: (job: Job) => void;
   onRemove: (id: number) => void;
-  onError: (message: string, kind: 'settings' | 'engine') => void;
 }
 
 function isVideo(file: File): boolean {
   return (
-    file.type.startsWith('video/') ||
-    /\.(mp4|m4v|mov|webm|mkv|avi|mpeg|mpg|ogv|ts)$/i.test(file.name)
+    file.type.startsWith('video/') || /\.(mp4|m4v|mov|webm|mkv|ts|mts|m2ts|ogv)$/i.test(file.name)
   );
 }
 
@@ -38,11 +29,12 @@ export class ExtractionQueue {
   private readonly options: QueueOptions;
   private nextJobId = 0;
   private running = false;
+  private processorLoading = false;
   private activeJob: Job | undefined;
-  private engineLoading = false;
+  private activeExtraction: AbortController | undefined;
+  private readonly inspections = new Map<number, AbortController>();
   private processor: Processor | undefined;
-  private processorLoading: Promise<Processor> | undefined;
-  private settingsGeneration = 0;
+  private processorPromise: Promise<Processor> | undefined;
 
   constructor(options: QueueOptions) {
     this.options = options;
@@ -53,17 +45,10 @@ export class ExtractionQueue {
   }
 
   get state(): QueueState {
-    return {
-      running: this.running,
-      engineLoading: this.engineLoading,
-      engineAvailable: this.options.engineAvailable,
-    };
+    return { running: this.running, processorLoading: this.processorLoading };
   }
 
-  addFiles(
-    files: Iterable<File>,
-    settings: OutputSettings,
-  ): { invalid: number; duplicate: number } {
+  addFiles(files: Iterable<File>): { invalid: number; duplicate: number } {
     const seen = new Set(this.items.map((job) => fileKey(job.file)));
     let invalid = 0;
     let duplicate = 0;
@@ -81,7 +66,6 @@ export class ExtractionQueue {
       const job: Job = {
         id: ++this.nextJobId,
         file,
-        settings: { ...settings, extraArgs: [...settings.extraArgs] },
         status: 'queued',
         progress: 0,
       };
@@ -97,58 +81,25 @@ export class ExtractionQueue {
     const index = this.items.findIndex((job) => job.id === id);
     if (index < 0) return;
     const [job] = this.items.splice(index, 1);
+    this.inspections.get(id)?.abort();
     if (this.activeJob === job) {
       job.status = 'cancelled';
-      this.processor?.cancelCurrent();
+      this.activeExtraction?.abort();
     }
     this.options.onRemove(id);
     this.options.onChange();
   }
 
-  updateSettings(settings: OutputSettings): void {
-    this.settingsGeneration++;
-    for (const job of this.items) {
-      job.settings = { ...settings, extraArgs: [...settings.extraArgs] };
-      job.status = 'queued';
-      job.progress = 0;
-      job.output = undefined;
-      job.outputExtension = undefined;
-      job.error = undefined;
-      this.options.onChange(job);
-    }
-    if (this.running) this.processor?.cancelCurrent();
-    this.options.onChange();
-  }
-
-  async listCapabilities(): Promise<string> {
-    return (await this.getProcessor()).listCapabilities();
-  }
-
   async start(): Promise<void> {
-    if (this.running) return;
-    const job = this.items.find((item) => item.status === 'queued');
-    if (!job) return;
-    if (!this.options.engineAvailable) {
-      this.options.onError(
-        'Multithreaded FFmpeg needs cross-origin isolation. Serve this app with COOP/COEP headers and reload.',
-        'engine',
-      );
-      return;
-    }
-    const generation = this.settingsGeneration;
+    if (this.running || !this.items.some((job) => job.status === 'queued')) return;
     this.running = true;
     try {
-      let next: Job | undefined = job;
-      while (next && generation === this.settingsGeneration) {
-        const invalidSettings = settingsError(next.settings);
-        if (invalidSettings) {
-          this.options.onError(invalidSettings, 'settings');
-          break;
-        }
-        // Jobs share one FFmpeg filesystem and must complete in sequence.
+      let next = this.items.find((job) => job.status === 'queued');
+      while (next) {
+        // Process one file at a time to limit peak memory usage.
         // oxlint-disable-next-line no-await-in-loop
-        await this.processJob(next, generation);
-        next = this.items.find((item) => item.status === 'queued');
+        await this.processJob(next);
+        next = this.items.find((job) => job.status === 'queued');
       }
     } finally {
       this.running = false;
@@ -156,91 +107,73 @@ export class ExtractionQueue {
     }
   }
 
-  private async processJob(job: Job, generation: number): Promise<void> {
-    const isCurrent = () => generation === this.settingsGeneration && this.items.includes(job);
+  private async processJob(job: Job): Promise<void> {
+    const controller = new AbortController();
+    const isCurrent = () => !controller.signal.aborted && this.items.includes(job);
     this.activeJob = job;
-    this.engineLoading = true;
+    this.activeExtraction = controller;
+    this.processorLoading = !this.processor;
     this.options.onChange();
     try {
       const processor = await this.getProcessor();
       if (!isCurrent()) return;
-      await processor.loadEngine();
-      this.engineLoading = false;
-      this.options.onChange();
-      if (!isCurrent()) return;
-      const result = await processor.extract(
-        job,
-        (progress) => {
-          if (!isCurrent() || job.status !== 'processing') return;
-          job.progress = progress;
-          this.options.onChange(job);
-        },
-        () => {
-          if (!isCurrent()) return false;
-          job.status = 'processing';
-          this.options.onChange(job);
-          return true;
-        },
-      );
-      if (isCurrent() && result && job.status === 'processing') {
+      this.processorLoading = false;
+      job.status = 'processing';
+      this.options.onChange(job);
+      const result = await processor.extract(job.file, controller.signal, (progress) => {
+        if (!isCurrent()) return;
+        job.progress = progress;
+        this.options.onChange(job);
+      });
+      if (isCurrent()) {
         job.output = new Blob([result.data], { type: result.mime });
         job.outputExtension = result.extension;
         job.progress = 1;
         job.status = 'done';
       }
     } catch (error) {
-      if (error instanceof EngineCancelledError) return;
-      if (isCurrent() && (job.status === 'queued' || job.status === 'processing')) {
+      if (isCurrent()) {
         job.status = 'error';
         job.error = error instanceof Error ? error.message : String(error);
       }
-      if (isCurrent() && !this.processor?.isLoaded()) {
-        this.options.onError(
-          'The FFmpeg engine could not load. Check the isolation headers and try again.',
-          'engine',
-        );
-      }
     } finally {
-      this.engineLoading = false;
+      this.processorLoading = false;
       this.activeJob = undefined;
+      this.activeExtraction = undefined;
       this.options.onChange(this.items.includes(job) ? job : undefined);
     }
   }
 
   private getProcessor(): Promise<Processor> {
     if (this.processor) return Promise.resolve(this.processor);
-    if (this.processorLoading) return this.processorLoading;
-    this.processorLoading = this.options
+    if (this.processorPromise) return this.processorPromise;
+    this.processorPromise = this.options
       .loadProcessor()
       .then((processor) => {
         this.processor = processor;
         return processor;
       })
       .finally(() => {
-        this.processorLoading = undefined;
+        this.processorPromise = undefined;
       });
-    return this.processorLoading;
+    return this.processorPromise;
   }
 
   private inspectAudio(job: Job): void {
-    if (!this.options.engineAvailable) {
-      job.sourceAudio = 'unavailable';
-      this.options.onChange(job);
-      return;
-    }
+    const controller = new AbortController();
+    this.inspections.set(job.id, controller);
     void (async () => {
-      if (!this.items.includes(job)) return;
       try {
         const processor = await this.getProcessor();
-        job.sourceAudio =
-          (await processor.probeAudioCodec(job, () => this.items.includes(job))) ??
-          'could not detect';
-      } catch (error) {
-        if (error instanceof EngineCancelledError) return;
-        console.error('Audio format detection failed:', error);
-        job.sourceAudio = 'could not detect';
+        controller.signal.throwIfAborted();
+        const info = await processor.inspectAudio(job.file, controller.signal);
+        if (!controller.signal.aborted) Object.assign(job, info);
+      } catch {
+        if (!controller.signal.aborted) job.sourceAudio = 'could not detect';
+      } finally {
+        this.inspections.delete(job.id);
+        if (this.items.includes(job)) this.options.onChange(job);
       }
-      if (this.items.includes(job)) this.options.onChange(job);
     })();
   }
 }

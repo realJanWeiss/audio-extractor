@@ -103,7 +103,8 @@ export class MediaJob extends HTMLElement {
     this.progress.hidden = job.status !== 'processing';
 
     this.result.textContent =
-      job.error || (job.output ? `${formatSize(job.output.size)} output` : '');
+      job.error ||
+      (job.output ? `${job.outputExtension?.toUpperCase()} · ${formatSize(job.output.size)}` : '');
     this.result.hidden = !this.result.textContent;
     this.downloadButton.hidden = job.status !== 'done';
     const removeAction = job.status === 'processing' ? 'Cancel' : 'Remove';

@@ -112,4 +112,10 @@ export class MediaJob extends HTMLElement {
   }
 }
 
+declare global {
+  interface HTMLElementTagNameMap {
+    'media-job': MediaJob;
+  }
+}
+
 customElements.define('media-job', MediaJob);

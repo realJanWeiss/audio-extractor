@@ -67,3 +67,7 @@ export const formatLabel: Record<OutputFormat, { label: string; mime: string }> 
   wma: { label: 'WMA', mime: 'audio/x-ms-wma' },
   custom: { label: 'Custom FFmpeg format', mime: 'application/octet-stream' },
 };
+
+export function isOutputFormat(value: string): value is OutputFormat {
+  return Object.hasOwn(formatLabel, value);
+}

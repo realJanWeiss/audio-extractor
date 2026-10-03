@@ -11,7 +11,8 @@
   },
   "options": {
     "denyWarnings": true,
-    "reportUnusedDisableDirectives": "error"
+    "reportUnusedDisableDirectives": "error",
+    "typeAware": true
   },
   "env": {
     "builtin": true

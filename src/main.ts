@@ -2,7 +2,7 @@ import './style.css';
 import './media-job.ts';
 
 import type { Job, OutputFormat, OutputSettings } from './types.ts';
-import { extension } from './types.ts';
+import { extension, isOutputFormat } from './types.ts';
 import { ui, announce, refreshView, removeJobTile } from './ui.ts';
 
 const jobs: Job[] = [];
@@ -15,8 +15,14 @@ let formatGeneration = 0;
 const engineAvailable = crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined';
 const lossyFormats = new Set<OutputFormat>(['mp3', 'm4a', 'ogg', 'opus', 'ac3', 'wma', 'custom']);
 
+function readFormat(): OutputFormat {
+  const value = ui.format.value;
+  if (!isOutputFormat(value)) throw new Error(`Unsupported output format: ${value}`);
+  return value;
+}
+
 function readSettings(): OutputSettings {
-  const format = ui.format.value as OutputFormat;
+  const format = readFormat();
   const adjustable = format !== 'original';
   return {
     format,
@@ -40,7 +46,7 @@ function readSettings(): OutputSettings {
 }
 
 function updateSettingsControls(): void {
-  const format = ui.format.value as OutputFormat;
+  const format = readFormat();
   const original = format === 'original';
   ui.bitrate.disabled = !lossyFormats.has(format);
   ui.sampleRate.disabled = original;
@@ -58,6 +64,7 @@ function settingsError(settings: OutputSettings): string | undefined {
     return 'Enter a valid FFmpeg muxer in Advanced settings.';
   if (!/^[a-zA-Z0-9]+$/.test(settings.customExtension ?? ''))
     return 'Enter a valid file extension in Advanced settings.';
+  return undefined;
 }
 
 function queueMediaTask<T>(task: () => Promise<T>): Promise<T> {
@@ -366,13 +373,15 @@ ui.downloadAll.addEventListener('click', () => {
 });
 
 ui.jobs.addEventListener('job-download', (event) => {
-  const id = (event as CustomEvent<number>).detail;
+  if (!(event instanceof CustomEvent) || typeof event.detail !== 'number') return;
+  const id = event.detail;
   const job = jobs.find((item) => item.id === id);
   if (job) download(job);
 });
 
 ui.jobs.addEventListener('job-remove', (event) => {
-  const id = (event as CustomEvent<number>).detail;
+  if (!(event instanceof CustomEvent) || typeof event.detail !== 'number') return;
+  const id = event.detail;
   const index = jobs.findIndex((job) => job.id === id);
   if (index < 0) return;
 

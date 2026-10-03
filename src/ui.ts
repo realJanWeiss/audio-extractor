@@ -1,39 +1,40 @@
 import type { MediaJob } from './media-job.ts';
 import type { Job } from './types.ts';
 
-function required<T extends Element>(selector: string): T {
-  const element = document.querySelector<T>(selector);
-  if (!element) throw new Error(`Missing required element: ${selector}`);
+function required<T extends Element>(selector: string, elementType: new () => T): T {
+  const element = document.querySelector(selector);
+  if (!(element instanceof elementType))
+    throw new Error(`Missing or invalid required element: ${selector}`);
   return element;
 }
 
 export const ui = {
-  main: required<HTMLElement>('main'),
-  files: required<HTMLInputElement>('#files'),
-  dropZone: required<HTMLElement>('#drop-zone'),
-  controls: required<HTMLElement>('#controls'),
-  format: required<HTMLSelectElement>('#format'),
-  advanced: required<HTMLDetailsElement>('#advanced'),
-  bitrate: required<HTMLSelectElement>('#bitrate'),
-  sampleRate: required<HTMLSelectElement>('#sample-rate'),
-  channels: required<HTMLSelectElement>('#channels'),
-  customFields: required<HTMLElement>('#custom-fields'),
-  customCodec: required<HTMLInputElement>('#custom-codec'),
-  customMuxer: required<HTMLInputElement>('#custom-muxer'),
-  customExtension: required<HTMLInputElement>('#custom-extension'),
-  extraArgs: required<HTMLTextAreaElement>('#extra-args'),
-  showCapabilities: required<HTMLButtonElement>('#show-capabilities'),
-  capabilities: required<HTMLElement>('#capabilities'),
-  runButton: required<HTMLButtonElement>('#run'),
-  runLabel: required<HTMLElement>('#run-label'),
-  downloadAll: required<HTMLButtonElement>('#download-all'),
-  activity: required<HTMLElement>('#activity'),
-  engineProgress: required<HTMLProgressElement>('#engine-progress'),
-  currentStatus: required<HTMLElement>('#current-status'),
-  batchStatus: required<HTMLElement>('#batch-status'),
-  batchProgress: required<HTMLProgressElement>('#batch-progress'),
-  notice: required<HTMLElement>('#notice'),
-  jobs: required<HTMLElement>('#jobs'),
+  main: required('main', HTMLElement),
+  files: required('#files', HTMLInputElement),
+  dropZone: required('#drop-zone', HTMLElement),
+  controls: required('#controls', HTMLElement),
+  format: required('#format', HTMLSelectElement),
+  advanced: required('#advanced', HTMLDetailsElement),
+  bitrate: required('#bitrate', HTMLSelectElement),
+  sampleRate: required('#sample-rate', HTMLSelectElement),
+  channels: required('#channels', HTMLSelectElement),
+  customFields: required('#custom-fields', HTMLElement),
+  customCodec: required('#custom-codec', HTMLInputElement),
+  customMuxer: required('#custom-muxer', HTMLInputElement),
+  customExtension: required('#custom-extension', HTMLInputElement),
+  extraArgs: required('#extra-args', HTMLTextAreaElement),
+  showCapabilities: required('#show-capabilities', HTMLButtonElement),
+  capabilities: required('#capabilities', HTMLElement),
+  runButton: required('#run', HTMLButtonElement),
+  runLabel: required('#run-label', HTMLElement),
+  downloadAll: required('#download-all', HTMLButtonElement),
+  activity: required('#activity', HTMLElement),
+  engineProgress: required('#engine-progress', HTMLProgressElement),
+  currentStatus: required('#current-status', HTMLElement),
+  batchStatus: required('#batch-status', HTMLElement),
+  batchProgress: required('#batch-progress', HTMLProgressElement),
+  notice: required('#notice', HTMLElement),
+  jobs: required('#jobs', HTMLElement),
 };
 
 export function announce(message: string, error = false): void {
@@ -45,7 +46,7 @@ export function announce(message: string, error = false): void {
 function renderJob(job: Job): void {
   let tile = ui.jobs.querySelector<MediaJob>(`media-job[data-id="${job.id}"]`);
   if (!tile) {
-    tile = document.createElement('media-job') as MediaJob;
+    tile = document.createElement('media-job');
     tile.dataset.id = String(job.id);
     ui.jobs.append(tile);
   }

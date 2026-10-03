@@ -10,7 +10,6 @@ let nextJobId = 0;
 let running = false;
 let engineLoading = false;
 let engine: typeof import('./processor.ts') | undefined;
-let mediaTasks: Promise<unknown> = Promise.resolve();
 let formatGeneration = 0;
 const engineAvailable = crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined';
 const lossyFormats = new Set<OutputFormat>(['mp3', 'm4a', 'ogg', 'opus', 'ac3', 'wma', 'custom']);
@@ -67,30 +66,25 @@ function settingsError(settings: OutputSettings): string | undefined {
   return undefined;
 }
 
-function queueMediaTask<T>(task: () => Promise<T>): Promise<T> {
-  const next = mediaTasks.then(task, task);
-  mediaTasks = next.catch(() => undefined);
-  return next;
-}
-
 function inspectAudio(job: Job): void {
   if (!engineAvailable) {
     job.sourceAudio = 'unavailable';
     refresh(job);
     return;
   }
-  void queueMediaTask(async () => {
+  void (async () => {
     if (!jobs.includes(job)) return;
     try {
       engine ??= await import('./processor.ts');
-      await engine.loadEngine();
-      job.sourceAudio = (await engine.probeAudioCodec(job)) ?? 'could not detect';
+      job.sourceAudio =
+        (await engine.probeAudioCodec(job, () => jobs.includes(job))) ?? 'could not detect';
     } catch (error) {
+      if (engine && error instanceof engine.EngineCancelledError) return;
       console.error('Audio format detection failed:', error);
       job.sourceAudio = 'could not detect';
     }
     if (jobs.includes(job)) refresh(job);
-  });
+  })();
 }
 
 function refresh(job?: Job): void {
@@ -258,16 +252,20 @@ async function processQueue(): Promise<void> {
 
     if (generation !== formatGeneration || !jobs.includes(job)) return;
 
-    const result = await queueMediaTask(async () => {
-      if (generation !== formatGeneration || !jobs.includes(job)) return undefined;
-      job.status = 'processing';
-      refresh(job);
-      return engine!.extract(job, (progress) => {
+    const result = await engine.extract(
+      job,
+      (progress) => {
         if (generation !== formatGeneration) return;
         job.progress = progress;
         if (jobs.includes(job)) refresh(job);
-      });
-    });
+      },
+      () => {
+        if (generation !== formatGeneration || !jobs.includes(job)) return false;
+        job.status = 'processing';
+        refresh(job);
+        return true;
+      },
+    );
 
     if (generation === formatGeneration && result && job.status === 'processing') {
       job.output = new Blob([result.data], { type: result.mime });
@@ -276,6 +274,7 @@ async function processQueue(): Promise<void> {
       job.status = 'done';
     }
   } catch (error) {
+    if (engine && error instanceof engine.EngineCancelledError) return;
     if (
       generation === formatGeneration &&
       (job.status === 'queued' || job.status === 'processing')
@@ -332,10 +331,9 @@ ui.showCapabilities.addEventListener('click', () => {
   if (!engineAvailable) return;
   ui.showCapabilities.disabled = true;
   ui.showCapabilities.textContent = 'Loading FFmpeg capabilities…';
-  void queueMediaTask(async () => {
+  void (async () => {
     try {
       engine ??= await import('./processor.ts');
-      await engine.loadEngine();
       ui.capabilities.textContent = await engine.listCapabilities();
     } catch (error) {
       ui.capabilities.textContent = error instanceof Error ? error.message : String(error);
@@ -344,7 +342,7 @@ ui.showCapabilities.addEventListener('click', () => {
       ui.showCapabilities.disabled = false;
       ui.showCapabilities.textContent = 'Refresh available encoders and muxers';
     }
-  });
+  })();
 });
 
 ui.dropZone.addEventListener('dragover', (event) => {

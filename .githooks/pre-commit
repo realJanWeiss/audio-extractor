@@ -1,0 +1,3 @@
+#!/bin/sh
+pnpm lint || exit $?
+exec pnpm test

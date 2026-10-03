@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "if [ -e .git ]; then git config --local core.hooksPath .githooks; fi",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "node --test tests/*.test.mjs",
     "lint": "npm run lint:oxlint && npm run fmt:check && npm run lint:styles",
     "lint:oxlint": "oxlint",
     "lint:styles": "stylelint 'src/**/*.css'",

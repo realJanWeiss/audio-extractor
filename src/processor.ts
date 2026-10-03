@@ -6,25 +6,13 @@ import coreURL from '@ffmpeg/core-mt?url';
 import wasmURL from '@ffmpeg/core-mt/wasm?url';
 import workerURL from '@ffmpeg/core-mt/worker?url';
 import type { Job } from './types.ts';
-import { extension, formatLabel } from './types.ts';
+import { audioCodec, canCopyAac, matroskaAudio, resolveOutputFormat } from './audio-format.ts';
 
 interface AudioOutput {
   data: Uint8Array<ArrayBuffer>;
   extension: string;
   mime: string;
 }
-
-const originalContainers: Record<string, { extension: string; mime: string }> = {
-  aac: { extension: 'm4a', mime: 'audio/mp4' },
-  alac: { extension: 'm4a', mime: 'audio/mp4' },
-  mp3: { extension: 'mp3', mime: 'audio/mpeg' },
-  flac: { extension: 'flac', mime: 'audio/flac' },
-  opus: { extension: 'opus', mime: 'audio/ogg' },
-  vorbis: { extension: 'ogg', mime: 'audio/ogg' },
-  ac3: { extension: 'ac3', mime: 'audio/ac3' },
-  eac3: { extension: 'eac3', mime: 'audio/eac3' },
-};
-const matroskaAudio = { extension: 'mka', mime: 'audio/x-matroska' };
 
 const urls = import.meta.env.DEV
   ? {
@@ -161,53 +149,6 @@ async function readAudioCodec(
   }
 }
 
-function audioCodec(job: Job, copyAac: boolean): string[] {
-  const { format, bitrateKbps, sampleRate, channels, customCodec, customMuxer, extraArgs } =
-    job.settings;
-  let args: string[];
-  switch (format) {
-    case 'original':
-      return ['-c:a', 'copy'];
-    case 'mp3':
-      args = ['-c:a', 'libmp3lame', ...(bitrateKbps ? [] : ['-q:a', '2'])];
-      break;
-    case 'm4a':
-      args = copyAac ? ['-c:a', 'copy'] : ['-c:a', 'aac', ...(bitrateKbps ? [] : ['-b:a', '192k'])];
-      break;
-    case 'wav':
-      args = ['-c:a', 'pcm_s16le'];
-      break;
-    case 'flac':
-      args = ['-c:a', 'flac'];
-      break;
-    case 'ogg':
-      args = ['-c:a', 'libvorbis', ...(bitrateKbps ? [] : ['-q:a', '5'])];
-      break;
-    case 'opus':
-      args = ['-c:a', 'libopus', ...(bitrateKbps ? [] : ['-b:a', '128k'])];
-      break;
-    case 'alac':
-      args = ['-c:a', 'alac'];
-      break;
-    case 'aiff':
-      args = ['-c:a', 'pcm_s16be'];
-      break;
-    case 'ac3':
-      args = ['-c:a', 'ac3', ...(bitrateKbps ? [] : ['-b:a', '192k'])];
-      break;
-    case 'wma':
-      args = ['-c:a', 'wmav2', ...(bitrateKbps ? [] : ['-b:a', '192k'])];
-      break;
-    case 'custom':
-      args = ['-c:a', customCodec!, '-f', customMuxer!];
-      break;
-  }
-  if (bitrateKbps) args.push('-b:a', `${bitrateKbps}k`);
-  if (sampleRate) args.push('-ar', String(sampleRate));
-  if (channels) args.push('-ac', String(channels));
-  return [...args, ...extraArgs];
-}
-
 export function extract(
   job: Job,
   onProgress: (progress: number) => void,
@@ -225,28 +166,15 @@ export function extract(
     instance.on('progress', progress);
     try {
       await instance.writeFile(input, await fetchFile(job.file));
-      const { format, bitrateKbps, sampleRate, channels, customExtension, extraArgs } =
-        job.settings;
+      const { format } = job.settings;
       const codec =
         job.sourceCodec ??
         (format === 'original' || format === 'm4a'
           ? await readAudioCodec(instance, input, probe)
           : undefined);
       signal.throwIfAborted();
-      const copyAac =
-        format === 'm4a' &&
-        codec === 'aac' &&
-        !bitrateKbps &&
-        !sampleRate &&
-        !channels &&
-        extraArgs.length === 0;
-      let outputFormat =
-        format === 'original'
-          ? (originalContainers[codec ?? ''] ?? matroskaAudio)
-          : {
-              extension: format === 'custom' ? customExtension! : extension[format],
-              mime: formatLabel[format].mime,
-            };
+      const copyAac = canCopyAac(job.settings, codec);
+      let outputFormat = resolveOutputFormat(job.settings, codec);
       let output = `output-${job.id}.${outputFormat.extension}`;
       outputs.push(output);
       let code = await instance.exec([
@@ -255,7 +183,7 @@ export function extract(
         '-map',
         '0:a:0',
         '-vn',
-        ...audioCodec(job, copyAac),
+        ...audioCodec(job.settings, copyAac),
         output,
       ]);
       signal.throwIfAborted();

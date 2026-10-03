@@ -1,5 +1,6 @@
 import type { MediaJob } from './media-job.ts';
 import type { Job } from './types.ts';
+import type { QueueState } from './extraction-queue.ts';
 
 function required<T extends Element>(selector: string, elementType: new () => T): T {
   const element = document.querySelector(selector);
@@ -57,11 +58,7 @@ export function removeJobTile(id: number): void {
   ui.jobs.querySelector(`media-job[data-id="${id}"]`)?.remove();
 }
 
-export function refreshView(
-  jobs: Job[],
-  state: { running: boolean; engineLoading: boolean; engineAvailable: boolean },
-  changedJob?: Job,
-): void {
+export function refreshView(jobs: readonly Job[], state: QueueState, changedJob?: Job): void {
   if (changedJob) renderJob(changedJob);
 
   const total = jobs.length;

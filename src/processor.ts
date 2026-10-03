@@ -77,27 +77,28 @@ export function cancelCurrent() {
   loading = undefined;
 }
 
+async function describeCapabilities(readyInstance: FFmpeg, option: string): Promise<string> {
+  const lines: string[] = [];
+  const onLog = ({ message }: { message: string }) => {
+    lines.push(message);
+  };
+  readyInstance.on('log', onLog);
+  try {
+    await readyInstance.exec(['-hide_banner', option]);
+  } finally {
+    readyInstance.off('log', onLog);
+  }
+  return lines.join('\n') || 'No capabilities were reported.';
+}
+
 export async function listCapabilities(): Promise<string> {
   const instance = ffmpeg;
   if (!instance || !instance.loaded) throw new Error('The engine is not ready.');
-  async function describe(readyInstance: FFmpeg, option: string): Promise<string> {
-    const lines: string[] = [];
-    const onLog = ({ message }: { message: string }) => {
-      lines.push(message);
-    };
-    readyInstance.on('log', onLog);
-    try {
-      await readyInstance.exec(['-hide_banner', option]);
-    } finally {
-      readyInstance.off('log', onLog);
-    }
-    return lines.join('\n') || 'No capabilities were reported.';
-  }
-  const encoders = (await describe(instance, '-encoders'))
+  const encoders = (await describeCapabilities(instance, '-encoders'))
     .split('\n')
     .filter((line) => /^\s*A[.A-Z]{5}\s+[^=]/.test(line))
     .join('\n');
-  const muxers = await describe(instance, '-muxers');
+  const muxers = await describeCapabilities(instance, '-muxers');
   return `Audio encoders:\n${encoders || 'No audio encoders were reported.'}\n\nFFmpeg muxers (includes containers that do not accept audio):\n${muxers}`;
 }
 

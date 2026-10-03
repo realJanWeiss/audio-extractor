@@ -127,24 +127,30 @@ function inspectVideo(job: Job): void {
     cleanup();
   }
 
-  video.onloadedmetadata = () => {
-    if (finished) return;
-    if (Number.isFinite(video.duration)) job.duration = video.duration;
-    if (jobs.includes(job)) refresh(job);
-    const frameTime =
-      Number.isFinite(video.duration) && video.duration > 0 ? Math.min(1, video.duration / 10) : 0;
-    if (frameTime > 0) {
-      video.onseeked = captureFrame;
-      try {
-        video.currentTime = frameTime;
-      } catch {
-        captureFrame();
+  video.addEventListener(
+    'loadedmetadata',
+    () => {
+      if (finished) return;
+      if (Number.isFinite(video.duration)) job.duration = video.duration;
+      if (jobs.includes(job)) refresh(job);
+      const frameTime =
+        Number.isFinite(video.duration) && video.duration > 0
+          ? Math.min(1, video.duration / 10)
+          : 0;
+      if (frameTime > 0) {
+        video.addEventListener('seeked', captureFrame, { once: true });
+        try {
+          video.currentTime = frameTime;
+        } catch {
+          captureFrame();
+        }
+      } else {
+        video.addEventListener('loadeddata', captureFrame, { once: true });
       }
-    } else {
-      video.onloadeddata = captureFrame;
-    }
-  };
-  video.onerror = cleanup;
+    },
+    { once: true },
+  );
+  video.addEventListener('error', cleanup, { once: true });
   video.src = url;
 }
 

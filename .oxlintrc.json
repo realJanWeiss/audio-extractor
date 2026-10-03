@@ -1,10 +1,18 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc"],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "promise"],
   "categories": {
-    "correctness": "error"
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
   },
-  "rules": {},
+  "rules": {
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css", "./media-job.ts"] }]
+  },
+  "options": {
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  },
   "env": {
     "builtin": true
   }

@@ -10,7 +10,52 @@
 }
 
 button {
-  border-radius: 0.375rem;
+  --button-background: light-dark(#f7f7f8, #242426);
+
+  appearance: none;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid color-mix(in srgb, currentcolor 15%, transparent);
+  border-radius: 0.625rem;
+  background: var(--button-background);
+  color: light-dark(#35353b, #e5e5e9);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background: color-mix(in srgb, var(--button-background) 90%, currentcolor);
+}
+
+button:focus-visible {
+  outline: 2px solid light-dark(#656575, #a6a6b8);
+  outline-offset: 3px;
+}
+
+.button-primary {
+  --button-background: light-dark(#252529, #ededf0);
+
+  border-color: transparent;
+  color: light-dark(#fff, #202024);
+}
+
+#run {
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
+}
+
+.button-icon {
+  --button-background: transparent;
+
+  width: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  border-color: transparent;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 main {
@@ -86,13 +131,6 @@ section {
 
 .controls button {
   margin-left: auto;
-}
-
-#run {
-  min-height: 3rem;
-  padding: 0.75rem 1.5rem;
-  font: inherit;
-  font-weight: 600;
 }
 
 .jobs {

@@ -46,7 +46,7 @@ export class MediaJob extends HTMLElement {
     const topActions = document.createElement('div');
     topActions.className = styles.topActions;
     this.removeButton.type = 'button';
-    this.removeButton.className = styles.removeButton;
+    this.removeButton.className = 'button-icon';
     this.removeButton.textContent = '×';
     topActions.append(this.removeButton);
     row.append(visual, info, topActions);
@@ -54,6 +54,7 @@ export class MediaJob extends HTMLElement {
     const bottom = document.createElement('div');
     bottom.className = styles.bottom;
     this.downloadButton.type = 'button';
+    this.downloadButton.className = 'button-primary';
     this.downloadButton.textContent = 'Download';
     bottom.append(this.result, this.downloadButton);
 

@@ -54,7 +54,7 @@ export function refreshView(jobs: readonly Job[], state: QueueState, changedJob?
   const pending = jobs.filter((job) => job.status === 'queued').length;
   const active = jobs.find((job) => job.status === 'processing');
 
-  ui.controls.hidden = total === 0;
+  ui.controls.hidden = pending === 0 || state.running;
   ui.extractionDetails.hidden = total === 0 && ui.notice.hidden;
   ui.jobs.hidden = total === 0;
   ui.main.classList.toggle('has-files', total > 0);
@@ -72,11 +72,5 @@ export function refreshView(jobs: readonly Job[], state: QueueState, changedJob?
       ? 'Preparing extraction…'
       : '';
 
-  ui.runButton.disabled = pending === 0 || state.running;
-  ui.runButton.textContent = state.processorLoading
-    ? 'Preparing extraction…'
-    : state.running
-      ? 'Extracting…'
-      : 'Extract audio';
   ui.downloadAll.hidden = done < 2;
 }

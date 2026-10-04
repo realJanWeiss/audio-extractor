@@ -60,9 +60,6 @@ ui.downloadAll.addEventListener('click', () => {
   for (const job of queue.jobs) {
     if (job.status === 'done') download(job);
   }
-  announce(
-    'If your browser blocks multiple downloads, allow them for this site or use the individual buttons.',
-  );
 });
 
 ui.jobs.addEventListener('job-download', (event) => {

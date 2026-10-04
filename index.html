@@ -26,7 +26,11 @@
         </div>
 
         <div id="extraction-details" class="extraction-details" hidden>
-          <p id="notice" role="alert" hidden></p>
+          <div id="jobs" class="jobs" aria-label="Files" hidden></div>
+
+          <div class="controls" id="controls" hidden>
+            <button id="run" class="button-primary" type="button">Extract audio</button>
+          </div>
 
           <div id="activity" role="status" aria-live="polite" hidden>
             <div><span id="current-status">Idle</span></div>
@@ -38,15 +42,13 @@
             ></progress>
             <div>
               <span id="batch-status">No files added yet</span>
-              <button id="download-all" type="button" hidden>Download all</button>
+              <button id="download-all" class="button-primary" type="button" hidden>
+                Download all
+              </button>
             </div>
           </div>
 
-          <div id="jobs" class="jobs" aria-label="Files" hidden></div>
-
-          <div class="controls" id="controls" hidden>
-            <button id="run" type="button">Extract audio</button>
-          </div>
+          <p id="notice" role="alert" hidden></p>
         </div>
       </section>
     </main>

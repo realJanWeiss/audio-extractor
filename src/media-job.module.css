@@ -55,25 +55,6 @@
   flex: none;
 }
 
-.removeButton {
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: 0;
-  border-radius: 0.25rem;
-  background: transparent;
-  font: inherit;
-  font-size: 1.5rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.removeButton:hover,
-.removeButton:focus-visible {
-  background: color-mix(in srgb, currentcolor 10%, transparent);
-}
-
 @media (width <= 34rem) {
   .row {
     display: grid;

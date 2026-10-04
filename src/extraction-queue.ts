@@ -1,6 +1,6 @@
 import type { Job } from './types.ts';
 
-export type Processor = Pick<typeof import('./processor.ts'), 'inspectAudio' | 'extract'>;
+type Processor = Pick<typeof import('./processor.ts'), 'inspectAudio' | 'extract'>;
 
 export interface QueueState {
   running: boolean;

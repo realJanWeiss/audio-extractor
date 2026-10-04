@@ -13,7 +13,7 @@ async function readAudio(file) {
     for await (const packet of new EncodedPacketSink(track).packets()) packets.push(packet.data);
     return {
       tracks: tracks.map((item) => item.type),
-      codec: track.codec,
+      codec: await track.getCodec(),
       channels: await track.getNumberOfChannels(),
       sampleRate: await track.getSampleRate(),
       config: await track.getDecoderConfig(),

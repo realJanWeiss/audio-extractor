@@ -32,7 +32,7 @@ function addFiles(files: FileList | File[]): void {
     messages.push(
       `${invalid} ${invalid === 1 ? 'file was' : 'files were'} skipped because ${invalid === 1 ? 'it does' : 'they do'} not look like videos.`,
     );
-  announce(messages.join(' '), invalid > 0);
+  announce(messages.join(' '));
   ui.files.value = '';
 }
 

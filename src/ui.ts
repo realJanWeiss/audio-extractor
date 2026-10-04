@@ -16,7 +16,6 @@ export const ui = {
   extractionDetails: required('#extraction-details', HTMLElement),
   controls: required('#controls', HTMLElement),
   runButton: required('#run', HTMLButtonElement),
-  runLabel: required('#run-label', HTMLElement),
   downloadAll: required('#download-all', HTMLButtonElement),
   activity: required('#activity', HTMLElement),
   currentStatus: required('#current-status', HTMLElement),
@@ -26,10 +25,9 @@ export const ui = {
   jobs: required('#jobs', HTMLElement),
 };
 
-export function announce(message: string, error = false): void {
+export function announce(message: string): void {
   ui.notice.textContent = message;
   ui.notice.hidden = message.length === 0;
-  ui.notice.classList.toggle('error', error);
   ui.extractionDetails.hidden = ui.jobs.hidden && ui.notice.hidden;
 }
 
@@ -75,7 +73,7 @@ export function refreshView(jobs: readonly Job[], state: QueueState, changedJob?
       : '';
 
   ui.runButton.disabled = pending === 0 || state.running;
-  ui.runLabel.textContent = state.processorLoading
+  ui.runButton.textContent = state.processorLoading
     ? 'Preparing extraction…'
     : state.running
       ? 'Extracting…'

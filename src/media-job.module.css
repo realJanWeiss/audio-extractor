@@ -74,10 +74,6 @@
   background: color-mix(in srgb, currentcolor 10%, transparent);
 }
 
-.progress {
-  width: 100%;
-}
-
 @media (width <= 34rem) {
   .row {
     display: grid;

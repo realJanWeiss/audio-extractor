@@ -20,9 +20,10 @@ export async function inspectAudio(file: Blob, signal: AbortSignal) {
     const [track] = await input.getAudioTracks();
     signal.throwIfAborted();
     if (!track) return { sourceAudio: 'no audio track' };
+    const codec = await track.getCodec();
+    signal.throwIfAborted();
     return {
-      sourceAudio: track.codec ? audioLabel(track.codec) : 'unsupported codec',
-      sourceCodec: track.codec ?? undefined,
+      sourceAudio: codec ? audioLabel(codec) : 'unsupported codec',
       duration: await track.computeDuration(),
     };
   } finally {
@@ -43,14 +44,16 @@ export async function extract(
     const [track] = await input.getAudioTracks();
     signal.throwIfAborted();
     if (!track) throw new Error('This video has no audio track.');
-    if (!track.codec) throw new Error('This audio codec is not supported for extraction.');
-    const { format, extension, mime } = resolveOutputFormat(track.codec);
+    const codec = await track.getCodec();
+    signal.throwIfAborted();
+    if (!codec) throw new Error('This audio codec is not supported for extraction.');
+    const { format, extension, mime } = resolveOutputFormat(codec);
     const decoderConfig = await track.getDecoderConfig();
     if (!decoderConfig) throw new Error('The audio track is missing its codec configuration.');
     const duration = await track.computeDuration();
     signal.throwIfAborted();
     output = new Output({ format, target });
-    const source = new EncodedAudioPacketSource(track.codec);
+    const source = new EncodedAudioPacketSource(codec);
     output.addAudioTrack(source);
     await output.start();
 

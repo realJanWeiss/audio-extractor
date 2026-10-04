@@ -57,7 +57,6 @@ export class MediaJob extends HTMLElement {
     this.downloadButton.textContent = 'Download';
     bottom.append(this.result, this.downloadButton);
 
-    this.progress.className = styles.progress;
     this.content.append(row, this.progress, bottom);
     this.downloadButton.addEventListener('click', () => this.dispatchJobEvent('job-download'));
     this.removeButton.addEventListener('click', () => this.dispatchJobEvent('job-remove'));

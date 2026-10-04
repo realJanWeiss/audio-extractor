@@ -1,4 +1,4 @@
-export type Status = 'queued' | 'processing' | 'done' | 'error' | 'cancelled';
+type Status = 'queued' | 'processing' | 'done' | 'error' | 'cancelled';
 
 export interface Job {
   id: number;
@@ -8,7 +8,6 @@ export interface Job {
   duration?: number;
   thumbnail?: string;
   sourceAudio?: string;
-  sourceCodec?: string;
   output?: Blob;
   outputExtension?: string;
   error?: string;

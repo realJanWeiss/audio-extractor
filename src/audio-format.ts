@@ -8,7 +8,7 @@ import {
 } from 'mediabunny';
 import type { AudioCodec, OutputFormat } from 'mediabunny';
 
-export interface AudioFormat {
+interface AudioFormat {
   format: OutputFormat;
   extension: string;
   mime: string;

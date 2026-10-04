@@ -11,7 +11,7 @@ function video(name) {
 function setup(overrides = {}, loadProcessor) {
   const calls = { imports: 0, extracted: [], states: [] };
   const processor = {
-    inspectAudio: async () => ({ sourceAudio: 'AAC', sourceCodec: 'aac' }),
+    inspectAudio: async () => ({ sourceAudio: 'AAC' }),
     async extract(file, _signal, onProgress) {
       calls.extracted.push(file.name);
       onProgress(0.5);

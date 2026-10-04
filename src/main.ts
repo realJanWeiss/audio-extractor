@@ -8,6 +8,7 @@ import { ui, announce, refreshView, removeJobTile } from './ui.ts';
 import type { Job } from './types.ts';
 
 const queue = new ExtractionQueue({
+  accept: ui.files.accept,
   loadProcessor: () => import('./processor.ts'),
   onChange: refresh,
   onAdd: (job) =>
@@ -57,22 +58,20 @@ ui.runButton.addEventListener('click', () => {
 });
 
 ui.downloadAll.addEventListener('click', () => {
-  for (const job of queue.jobs) {
-    if (job.status === 'done') download(job);
-  }
+  for (const job of queue.jobs) download(job);
 });
 
-ui.jobs.addEventListener('job-download', (event) => {
-  if (!(event instanceof CustomEvent) || typeof event.detail !== 'number') return;
-  const id = event.detail;
+function onJobEvent(name: string, handle: (id: number) => void): void {
+  ui.jobs.addEventListener(name, (event) => {
+    if (event instanceof CustomEvent && typeof event.detail === 'number') handle(event.detail);
+  });
+}
+
+onJobEvent('job-download', (id) => {
   const job = queue.jobs.find((item) => item.id === id);
   if (job) download(job);
 });
 
-ui.jobs.addEventListener('job-remove', (event) => {
-  if (!(event instanceof CustomEvent) || typeof event.detail !== 'number') return;
-  const id = event.detail;
-  queue.remove(id);
-});
+onJobEvent('job-remove', (id) => queue.remove(id));
 
 refresh();

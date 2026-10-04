@@ -1,4 +1,4 @@
-import type { MediaJob } from './media-job.ts';
+import { formatProgress, type MediaJob } from './media-job.ts';
 import type { Job } from './types.ts';
 import type { QueueState } from './extraction-queue.ts';
 
@@ -50,24 +50,24 @@ export function refreshView(jobs: readonly Job[], state: QueueState, changedJob?
 
   const total = jobs.length;
   const done = jobs.filter((job) => job.status === 'done').length;
-  const settled = jobs.filter((job) => job.status === 'done' || job.status === 'error').length;
+  const settled = done + jobs.filter((job) => job.status === 'error').length;
   const pending = jobs.filter((job) => job.status === 'queued').length;
   const active = jobs.find((job) => job.status === 'processing');
 
   ui.controls.hidden = pending === 0 || state.running;
-  ui.extractionDetails.hidden = total === 0 && ui.notice.hidden;
   ui.jobs.hidden = total === 0;
+  ui.extractionDetails.hidden = ui.jobs.hidden && ui.notice.hidden;
   ui.main.classList.toggle('has-files', total > 0);
 
   ui.activity.hidden = !state.running && settled === 0;
-  ui.batchProgress.hidden = state.processorLoading || (!state.running && settled === 0);
+  ui.batchProgress.hidden = state.processorLoading || ui.activity.hidden;
   ui.batchProgress.max = Math.max(total, 1);
   ui.batchProgress.value = settled + (active?.progress ?? 0);
 
   ui.batchStatus.hidden = state.processorLoading;
   ui.batchStatus.textContent = total ? `${done} of ${total} complete` : '';
   ui.currentStatus.textContent = active
-    ? `${active.file.name} · ${Math.round(active.progress * 100)}%`
+    ? `${active.file.name} · ${formatProgress(active.progress)}`
     : state.processorLoading
       ? 'Preparing extraction…'
       : '';

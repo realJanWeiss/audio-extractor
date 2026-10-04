@@ -8,15 +8,19 @@ export interface QueueState {
 }
 
 interface QueueOptions {
+  accept: string;
   loadProcessor: () => Promise<Processor>;
   onChange: (job?: Job) => void;
   onAdd: (job: Job) => void;
   onRemove: (id: number) => void;
 }
 
-function isVideo(file: File): boolean {
+function isVideo(file: File, accept: string): boolean {
   return (
-    file.type.startsWith('video/') || /\.(mp4|m4v|mov|webm|mkv|ts|mts|m2ts|ogv)$/i.test(file.name)
+    file.type.startsWith('video/') ||
+    accept
+      .split(',')
+      .some((extension) => extension.startsWith('.') && file.name.toLowerCase().endsWith(extension))
   );
 }
 
@@ -30,8 +34,7 @@ export class ExtractionQueue {
   private nextJobId = 0;
   private running = false;
   private processorLoading = false;
-  private activeJob: Job | undefined;
-  private activeExtraction: AbortController | undefined;
+  private active: { job: Job; controller: AbortController } | undefined;
   private readonly inspections = new Map<number, AbortController>();
   private processor: Processor | undefined;
   private processorPromise: Promise<Processor> | undefined;
@@ -53,7 +56,7 @@ export class ExtractionQueue {
     let invalid = 0;
     let duplicate = 0;
     for (const file of files) {
-      if (!isVideo(file)) {
+      if (!isVideo(file, this.options.accept)) {
         invalid++;
         continue;
       }
@@ -72,7 +75,7 @@ export class ExtractionQueue {
       this.items.push(job);
       this.options.onChange(job);
       this.options.onAdd(job);
-      this.inspectAudio(job);
+      void this.inspectAudio(job);
     }
     return { invalid, duplicate };
   }
@@ -82,19 +85,19 @@ export class ExtractionQueue {
     if (index < 0) return;
     const [job] = this.items.splice(index, 1);
     this.inspections.get(id)?.abort();
-    if (this.activeJob === job) {
+    if (this.active?.job === job) {
       job.status = 'cancelled';
-      this.activeExtraction?.abort();
+      this.active.controller.abort();
     }
     this.options.onRemove(id);
     this.options.onChange();
   }
 
   async start(): Promise<void> {
-    if (this.running || !this.items.some((job) => job.status === 'queued')) return;
+    let next = this.items.find((job) => job.status === 'queued');
+    if (this.running || !next) return;
     this.running = true;
     try {
-      let next = this.items.find((job) => job.status === 'queued');
       while (next) {
         // Process one file at a time to limit peak memory usage.
         // oxlint-disable-next-line no-await-in-loop
@@ -110,8 +113,7 @@ export class ExtractionQueue {
   private async processJob(job: Job): Promise<void> {
     const controller = new AbortController();
     const isCurrent = () => !controller.signal.aborted && this.items.includes(job);
-    this.activeJob = job;
-    this.activeExtraction = controller;
+    this.active = { job, controller };
     this.processorLoading = !this.processor;
     this.options.onChange();
     try {
@@ -138,42 +140,34 @@ export class ExtractionQueue {
       }
     } finally {
       this.processorLoading = false;
-      this.activeJob = undefined;
-      this.activeExtraction = undefined;
+      this.active = undefined;
       this.options.onChange(this.items.includes(job) ? job : undefined);
     }
   }
 
   private getProcessor(): Promise<Processor> {
-    if (this.processor) return Promise.resolve(this.processor);
-    if (this.processorPromise) return this.processorPromise;
-    this.processorPromise = this.options
+    return (this.processorPromise ??= this.options
       .loadProcessor()
-      .then((processor) => {
-        this.processor = processor;
-        return processor;
-      })
-      .finally(() => {
+      .then((processor) => (this.processor = processor))
+      .catch((error) => {
         this.processorPromise = undefined;
-      });
-    return this.processorPromise;
+        throw error;
+      }));
   }
 
-  private inspectAudio(job: Job): void {
+  private async inspectAudio(job: Job): Promise<void> {
     const controller = new AbortController();
     this.inspections.set(job.id, controller);
-    void (async () => {
-      try {
-        const processor = await this.getProcessor();
-        controller.signal.throwIfAborted();
-        const info = await processor.inspectAudio(job.file, controller.signal);
-        if (!controller.signal.aborted) Object.assign(job, info);
-      } catch {
-        if (!controller.signal.aborted) job.sourceAudio = 'could not detect';
-      } finally {
-        this.inspections.delete(job.id);
-        if (this.items.includes(job)) this.options.onChange(job);
-      }
-    })();
+    try {
+      const processor = await this.getProcessor();
+      controller.signal.throwIfAborted();
+      const info = await processor.inspectAudio(job.file, controller.signal);
+      if (!controller.signal.aborted) Object.assign(job, info);
+    } catch {
+      if (!controller.signal.aborted) job.sourceAudio = 'could not detect';
+    } finally {
+      this.inspections.delete(job.id);
+      if (this.items.includes(job)) this.options.onChange(job);
+    }
   }
 }

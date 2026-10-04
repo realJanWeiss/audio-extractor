@@ -20,6 +20,7 @@ function setup(overrides = {}, loadProcessor) {
     ...overrides,
   };
   const queue = new ExtractionQueue({
+    accept: 'video/*,.mp4,.m4v,.mov,.mkv,.webm,.ts,.mts,.m2ts,.ogv',
     async loadProcessor() {
       calls.imports++;
       return loadProcessor ? loadProcessor(processor, calls) : processor;
@@ -36,14 +37,23 @@ function setup(overrides = {}, loadProcessor) {
 test('adding files filters invalid files and duplicates', () => {
   const { queue } = setup();
   assert.deepEqual(
-    queue.addFiles([video('one.mp4'), video('one.mp4'), new File(['text'], 'notes.txt')]),
+    queue.addFiles([
+      video('one.mp4'),
+      video('one.mp4'),
+      new File(['video'], 'clip.MOV'),
+      new File(['video'], 'clip.m2ts', { type: 'application/octet-stream' }),
+      new File(['text'], 'clip.mp4.txt'),
+    ]),
     {
       invalid: 1,
       duplicate: 1,
     },
   );
   assert.deepEqual(queue.addFiles([video('one.mp4')]), { invalid: 0, duplicate: 1 });
-  assert.equal(queue.jobs.length, 1);
+  assert.deepEqual(
+    queue.jobs.map((job) => job.file.name),
+    ['one.mp4', 'clip.MOV', 'clip.m2ts'],
+  );
 });
 
 test('a batch shares its lazy processor and processes each job once', async () => {

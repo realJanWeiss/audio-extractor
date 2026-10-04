@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ALL_FORMATS, BlobSource, EncodedPacketSink, Input } from 'mediabunny';
+import { ALL_FORMATS, BlobSource, EncodedPacketSink, Input, InputAudioTrack } from 'mediabunny';
 import { extract, inspectAudio } from '../src/processor.ts';
 import { makeMedia } from './media-fixtures.mjs';
 
@@ -98,6 +98,18 @@ test('an already cancelled extraction does not start reading the file', async ()
     extract(new Blob(['invalid']), AbortSignal.abort(), () => {}),
     { name: 'AbortError' },
   );
+});
+
+test('audio inspection rejects cancellation during metadata reads and disposes its input', async (t) => {
+  const file = await makeMedia();
+  const dispose = t.mock.method(Input.prototype, 'dispose');
+  const controller = new AbortController();
+  t.mock.method(InputAudioTrack.prototype, 'computeDuration', async () => {
+    controller.abort();
+    return 1;
+  });
+  await assert.rejects(inspectAudio(file, controller.signal), { name: 'AbortError' });
+  assert.equal(dispose.mock.callCount(), 1);
 });
 
 test('an unrecognized source codec produces an explicit error without changing the codec', async () => {

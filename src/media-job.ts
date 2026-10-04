@@ -13,52 +13,42 @@ function formatDuration(seconds: number): string {
   return `${minutes}:${remainder}`;
 }
 
+export function formatProgress(progress: number): string {
+  return `${Math.round(progress * 100)}%`;
+}
+
+const template = document.createElement('template');
+template.innerHTML = `
+  <div class="${styles.row}">
+    <div class="${styles.visual}">
+      <div class="${styles.thumbnailSlot}"><img class="${styles.thumbnail}" alt="" hidden></div>
+      <span class="${styles.state}" hidden></span>
+    </div>
+    <div class="${styles.info}"><strong></strong><span data-formats></span><span data-details></span></div>
+    <div class="${styles.topActions}"><button class="button-icon" type="button">×</button></div>
+  </div>
+  <progress max="1" hidden></progress>
+  <div class="${styles.bottom}">
+    <span data-result hidden></span>
+    <button class="button-primary" type="button" hidden>Download</button>
+  </div>
+`;
+
 export class MediaJob extends HTMLElement {
-  private content = document.createDocumentFragment();
-  private thumbnailSlot = document.createElement('div');
-  private thumbnail = document.createElement('img');
-  private name = document.createElement('strong');
-  private formats = document.createElement('span');
-  private details = document.createElement('span');
-  private state = document.createElement('span');
-  private progress = document.createElement('progress');
-  private result = document.createElement('span');
-  private downloadButton = document.createElement('button');
-  private removeButton = document.createElement('button');
+  private content = document.importNode(template.content, true);
+  private thumbnail = this.content.querySelector('img')!;
+  private name = this.content.querySelector('strong')!;
+  private formats = this.content.querySelector('[data-formats]')!;
+  private details = this.content.querySelector('[data-details]')!;
+  private state = this.content.querySelector<HTMLElement>(`.${styles.state}`)!;
+  private progress = this.content.querySelector('progress')!;
+  private result = this.content.querySelector<HTMLElement>('[data-result]')!;
+  private downloadButton = this.content.querySelector<HTMLButtonElement>('.button-primary')!;
+  private removeButton = this.content.querySelector<HTMLButtonElement>('.button-icon')!;
 
   constructor() {
     super();
 
-    const row = document.createElement('div');
-    row.className = styles.row;
-    const visual = document.createElement('div');
-    visual.className = styles.visual;
-    const info = document.createElement('div');
-    info.className = styles.info;
-    info.append(this.name, this.formats, this.details);
-    this.thumbnailSlot.className = styles.thumbnailSlot;
-    this.thumbnail.className = styles.thumbnail;
-    this.thumbnail.alt = '';
-    this.thumbnail.hidden = true;
-    this.thumbnailSlot.append(this.thumbnail);
-    this.state.className = styles.state;
-    visual.append(this.thumbnailSlot, this.state);
-    const topActions = document.createElement('div');
-    topActions.className = styles.topActions;
-    this.removeButton.type = 'button';
-    this.removeButton.className = 'button-icon';
-    this.removeButton.textContent = '×';
-    topActions.append(this.removeButton);
-    row.append(visual, info, topActions);
-
-    const bottom = document.createElement('div');
-    bottom.className = styles.bottom;
-    this.downloadButton.type = 'button';
-    this.downloadButton.className = 'button-primary';
-    this.downloadButton.textContent = 'Download';
-    bottom.append(this.result, this.downloadButton);
-
-    this.content.append(row, this.progress, bottom);
     this.downloadButton.addEventListener('click', () => this.dispatchJobEvent('job-download'));
     this.removeButton.addEventListener('click', () => this.dispatchJobEvent('job-remove'));
   }
@@ -91,14 +81,13 @@ export class MediaJob extends HTMLElement {
 
     const statusText = {
       queued: '',
-      processing: `${Math.round(job.progress * 100)}%`,
+      processing: formatProgress(job.progress),
       done: 'Done',
       error: 'Error',
       cancelled: '',
     };
     this.state.textContent = statusText[job.status];
     this.state.hidden = !this.state.textContent;
-    this.progress.max = 1;
     this.progress.value = job.progress;
     this.progress.hidden = job.status !== 'processing';
 
